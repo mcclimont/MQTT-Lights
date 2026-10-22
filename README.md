@@ -71,3 +71,34 @@ The `timer/state` topic publishes the remaining whole seconds, with `0` meaning 
 The firmware accumulates elapsed milliseconds independently for each relay, using unsigned `millis()` deltas so counter rollover is handled. Timer checks continue in the main loop while Wi-Fi reconnects are attempted periodically without a blocking wait. Timers are in-memory only, are cleared if the MQTT-Lights controller restarts, and do not require NTP or wall-clock time.
 
 The MQTT-Lights firmware implements this timer contract in `src/main.cpp`. Build and deploy the firmware to the controller for end-to-end operation with the Screen. Timers are held in memory and are cleared on controller restart.
+
+## Build and Deployment
+
+### Development Environment
+
+The project is developed on Windows using Visual Studio Code and the pioarduino PlatformIO IDE extension. PlatformIO builds the Arduino framework firmware using the ESP32 platform and libraries declared in `platformio.ini`.
+
+### Configure, Build, and Upload
+
+1. Open the MQTT-Lights project folder in Visual Studio Code and allow PlatformIO to install the project dependencies.
+2. In the project root, copy `include/config.example.h` to `include/config.h` and set the Wi-Fi and MQTT connection values. Keep `include/config.h` private; it is excluded from Git.
+3. Connect the selected ESP32 board over USB. The default environment is the Seeed XIAO ESP32-C3. Build it with:
+
+	```powershell
+	pio run -e seeed_xiao_esp32c3
+	```
+
+	To build for the Lolin S2 Mini instead, use `pio run -e lolin_s2_mini`.
+4. Upload the selected environment to the connected board:
+
+	```powershell
+	pio run -e seeed_xiao_esp32c3 -t upload
+	```
+
+	For the Lolin S2 Mini, use `pio run -e lolin_s2_mini -t upload`.
+
+The same build and upload targets are available from the PlatformIO controls in Visual Studio Code. If PlatformIO does not detect the board's serial port, select or configure the upload port before uploading.
+
+## Responsible AI
+
+AI tools were used to assist with developing and documenting this project. Project maintainers are responsible for reviewing, testing, and deploying changes.
