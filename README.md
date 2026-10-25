@@ -34,6 +34,33 @@ References:
 
 ELEGOO 4 Channel DC 5V Relay Module with Optocoupler
 
+#### Relay Wiring and Default States
+
+Connect the ESP32 relay-control GPIOs to relay module channels 1 through 4 in order. The GPIO assignments depend on the selected board:
+
+| Relay channel | Light | XIAO ESP32-C3 GPIO | Lolin S2 Mini GPIO |
+| --- | --- | ---: | ---: |
+| 1 | Light 1 | 3 | 1 |
+| 2 | Light 2 | 4 | 2 |
+| 3 | Light 3 | 5 | 4 |
+| 4 | Light 4 | 6 | 6 |
+
+The relay module's switched contacts are separate from its ESP32 control signals. Connect each light's circuit through that channel's `COM` and the selected `NO` or `NC` terminal:
+
+- Light 1 uses `COM` and `NC`.
+- Lights 2, 3, and 4 use `COM` and `NO`.
+
+The relay module is active-low: a GPIO LOW signal actuates its relay, and a GPIO HIGH signal releases it. At startup, firmware sets all four ESP32 GPIO outputs HIGH. The intended light states and control levels are:
+
+| Light | Contact used | GPIO at startup | Startup state | GPIO for ON | GPIO for OFF |
+| --- | --- | --- | --- | --- | --- |
+| 1 | NC | HIGH | ON | HIGH | LOW |
+| 2 | NO | HIGH | OFF | LOW | HIGH |
+| 3 | NO | HIGH | OFF | LOW | HIGH |
+| 4 | NO | HIGH | OFF | LOW | HIGH |
+
+The `ON` and `OFF` levels above describe the ESP32 GPIO signal, not the relay contact terminals. With this contact wiring, Light 1 is ON while its relay is released, and Lights 2–4 are ON while their relays are actuated.
+
 ## Device MQTT Topics
 
 The target device publishes the following MQTT topics:

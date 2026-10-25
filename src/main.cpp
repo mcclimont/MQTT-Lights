@@ -37,6 +37,12 @@ const int relayPins[4] = {3, 4, 5, 6}; // Replace with the GPIO pins you're usin
 #else
 const int relayPins[4] = {1, 2, 4, 6}; // Replace with the GPIO pins you're using
 #endif
+const int relayOnLevels[4] = {HIGH, LOW, LOW, LOW};
+
+int getRelayOffLevel(int relayIndex)
+{
+  return relayOnLevels[relayIndex] == LOW ? HIGH : LOW;
+}
 
 // MQTT topics for each relay
 const char *relaySetTopics[4] = {
@@ -142,14 +148,18 @@ IPAddress getlocalIP()
 
 String getRelayStateString(int relayIndex)
 {
-  return digitalRead(relayPins[relayIndex]) == LOW ? "ON" : "OFF";
+  return digitalRead(relayPins[relayIndex]) == relayOnLevels[relayIndex] ? "ON" : "OFF";
 }
 
 void publishRelayState(int relayIndex)
 {
   String state = getRelayStateString(relayIndex);
+  const int pinLevel = digitalRead(relayPins[relayIndex]);
   mqtt.publish(relayStateTopics[relayIndex], state.c_str());
-  Serial.printf("Published %s: %s\n", relayStateTopics[relayIndex], state.c_str());
+  Serial.printf("Published %s: %s (GPIO %d=%s, ON level=%s)\n",
+                relayStateTopics[relayIndex], state.c_str(), relayPins[relayIndex],
+                pinLevel == HIGH ? "HIGH" : "LOW",
+                relayOnLevels[relayIndex] == HIGH ? "HIGH" : "LOW");
 }
 
 uint32_t getRelayTimerRemainingSeconds(int relayIndex)
@@ -238,7 +248,7 @@ void updateRelayTimers()
     }
 
     timer = RelayTimer{};
-    digitalWrite(relayPins[relayIndex], HIGH);
+    digitalWrite(relayPins[relayIndex], getRelayOffLevel(relayIndex));
     Serial.printf("Relay %d timer expired; relay OFF\n", relayIndex + 1);
     publishRelayState(relayIndex);
     publishRelayTimerState(relayIndex);
@@ -275,7 +285,7 @@ void configureRelayTimerSubscriptions(int relayIndex)
     timer.durationSeconds = durationSeconds;
     timer.elapsedMilliseconds = 0;
     timer.lastUpdatedAt = millis();
-    digitalWrite(relayPins[relayIndex], LOW);
+    digitalWrite(relayPins[relayIndex], relayOnLevels[relayIndex]);
     Serial.printf("Relay %d ON; timer started for %lu seconds\n",
                   relayIndex + 1, static_cast<unsigned long>(durationSeconds));
     publishRelayState(relayIndex);
@@ -331,10 +341,10 @@ void configureRelaySubscriptions(int relayIndex)
     String message = payload; // Convert payload to string
     message.trim();
     if (message.equalsIgnoreCase("ON")) {
-      digitalWrite(relayPins[relayIndex], LOW); // Turn on relay
+      digitalWrite(relayPins[relayIndex], relayOnLevels[relayIndex]); // Turn on relay
       Serial.printf("Relay %d ON\n", relayIndex + 1);
     } else if (message.equalsIgnoreCase("OFF")) {
-      digitalWrite(relayPins[relayIndex], HIGH);  // Turn off relay
+      digitalWrite(relayPins[relayIndex], getRelayOffLevel(relayIndex));  // Turn off relay
       cancelRelayTimer(relayIndex);
       Serial.printf("Relay %d OFF\n", relayIndex + 1);
     } else if (message.equalsIgnoreCase("TOGGLE")) {
@@ -396,7 +406,9 @@ void setup()
   for (int i = 0; i < 4; i++)
   {
     pinMode(relayPins[i], OUTPUT);
-    digitalWrite(relayPins[i], HIGH); // Ensure relays are off initially
+    digitalWrite(relayPins[i], HIGH);
+    Serial.printf("Relay %d GPIO %d initialized HIGH; readback=%s\n",
+                  i + 1, relayPins[i], digitalRead(relayPins[i]) == HIGH ? "HIGH" : "LOW");
   }
 
   // WiFi
